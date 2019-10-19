@@ -17,7 +17,7 @@ namespace DTShop.PaymentService.Controllers
             var order = new OrderModel
             {
                 OrderId = orderId,
-                UserName = "misha",
+                Username = "misha",
                 Status = "Collecting",
                 OrderItems = new List<OrderItemModel> { new OrderItemModel
                 {
@@ -31,7 +31,7 @@ namespace DTShop.PaymentService.Controllers
                 } }
             };
 
-            if (order.UserName != userDetails.UserName)
+            if (order.Username != userDetails.Username)
             {
                 return BadRequest("Usernames in order and user details should be equal.");
             }

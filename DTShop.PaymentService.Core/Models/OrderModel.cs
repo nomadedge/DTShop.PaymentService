@@ -6,7 +6,7 @@ namespace DTShop.PaymentService.Core.Models
     public class OrderModel
     {
         public int OrderId { get; set; }
-        public string UserName { get; set; }
+        public string Username { get; set; }
         public int? PaymentId { get; set; }
         public string Status { get; set; }
         public decimal TotalCost => OrderItems.Sum(i => i.Amount * i.Item.Price);
