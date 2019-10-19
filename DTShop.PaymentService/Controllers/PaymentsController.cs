@@ -13,6 +13,19 @@ namespace DTShop.PaymentService.Controllers
         [HttpPut("{orderId}")]
         public async Task<ActionResult<OrderModel>> PayForOrder(int orderId, UserDetailsModel userDetails)
         {
+            CardAuthorizationInfo cardAuthorizationInfo;
+            switch (userDetails.CardAuthorizationInfo.ToLower())
+            {
+                case "authorized":
+                    cardAuthorizationInfo = CardAuthorizationInfo.Authorized;
+                    break;
+                case "unauthorized":
+                    cardAuthorizationInfo = CardAuthorizationInfo.Unauthorized;
+                    break;
+                default:
+                    return BadRequest("CardAuthorizationInfo is not valid.");
+            }
+
             //Should get an order from OrderService
             var order = new OrderModel
             {
@@ -43,7 +56,7 @@ namespace DTShop.PaymentService.Controllers
 
             int paymentId = 0;
             //This happens on external resource
-            switch (userDetails.CardAuthorizationInfo)
+            switch (cardAuthorizationInfo)
             {
                 case CardAuthorizationInfo.Authorized:
                     //Perform payment
