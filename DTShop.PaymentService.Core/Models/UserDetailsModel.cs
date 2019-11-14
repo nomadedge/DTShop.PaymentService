@@ -1,6 +1,4 @@
-﻿using DTShop.PaymentService.Core.Enums;
-
-namespace DTShop.PaymentService.Core.Models
+﻿namespace DTShop.PaymentService.Core.Models
 {
     public class UserDetailsModel
     {

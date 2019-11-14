@@ -1,8 +1,8 @@
 ﻿using DTShop.PaymentService.Core.Enums;
 using DTShop.PaymentService.Core.Models;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace DTShop.PaymentService.Controllers
 {
@@ -11,7 +11,7 @@ namespace DTShop.PaymentService.Controllers
     public class PaymentsController : ControllerBase
     {
         [HttpPut("{orderId}")]
-        public async Task<ActionResult<OrderModel>> PayForOrder(int orderId, UserDetailsModel userDetails)
+        public ActionResult<OrderModel> PayForOrder(int orderId, UserDetailsModel userDetails)
         {
             CardAuthorizationInfo cardAuthorizationInfo;
             switch (userDetails.CardAuthorizationInfo.ToLower())
@@ -30,7 +30,7 @@ namespace DTShop.PaymentService.Controllers
             var order = new OrderModel
             {
                 OrderId = orderId,
-                Username = "misha",
+                Username = "Misha",
                 Status = "Collecting",
                 OrderItems = new List<OrderItemModel> { new OrderItemModel
                 {
@@ -54,25 +54,21 @@ namespace DTShop.PaymentService.Controllers
                 return BadRequest("Order status should be \"Collecting\".");
             }
 
-            int paymentId = 0;
-            //This happens on external resource
+            var orderAfterPayment = order;
             switch (cardAuthorizationInfo)
             {
                 case CardAuthorizationInfo.Authorized:
-                    //Perform payment
-                    paymentId = 1;
+                    orderAfterPayment.PaymentId = DateTime.Now.Ticks;
+                    orderAfterPayment.Status = "Paid";
                     break;
                 case CardAuthorizationInfo.Unauthorized:
-                    //Authorize card and perform payment
-                    paymentId = 1;
+                    orderAfterPayment.PaymentId = 0;
+                    orderAfterPayment.Status = "Failed";
                     break;
             }
 
             //Call OrderService's method and pass orderId and paymentId to it
             //This method will return OrderModel instance with actual data
-            var orderAfterPayment = order;
-            orderAfterPayment.PaymentId = paymentId;
-            orderAfterPayment.Status = "Paid";
 
             return orderAfterPayment;
         }
