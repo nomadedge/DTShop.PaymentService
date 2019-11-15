@@ -1,8 +1,11 @@
 ﻿using DTShop.PaymentService.Core.Enums;
 using DTShop.PaymentService.Core.Models;
+using DTShop.PaymentService.Data.Entities;
+using DTShop.PaymentService.Data.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace DTShop.PaymentService.Controllers
 {
@@ -10,8 +13,15 @@ namespace DTShop.PaymentService.Controllers
     [ApiController]
     public class PaymentsController : ControllerBase
     {
+        private readonly IPaymentRepository _paymentRepository;
+
+        public PaymentsController(IPaymentRepository paymentRepository)
+        {
+            _paymentRepository = paymentRepository;
+        }
+
         [HttpPut("{orderId}")]
-        public ActionResult<OrderModel> PayForOrder(int orderId, UserDetailsModel userDetails)
+        public async Task<ActionResult<OrderModel>> PayForOrder(int orderId, UserDetailsModel userDetails)
         {
             CardAuthorizationInfo cardAuthorizationInfo;
             switch (userDetails.CardAuthorizationInfo.ToLower())
@@ -62,10 +72,21 @@ namespace DTShop.PaymentService.Controllers
                     orderAfterPayment.Status = "Paid";
                     break;
                 case CardAuthorizationInfo.Unauthorized:
-                    orderAfterPayment.PaymentId = 0;
+                    orderAfterPayment.PaymentId = DateTime.Now.Ticks;
                     orderAfterPayment.Status = "Failed";
                     break;
             }
+
+            var payment = new Payment
+            {
+                PaymentId = orderAfterPayment.PaymentId.Value,
+                OrderId = orderAfterPayment.OrderId,
+                Username = orderAfterPayment.Username,
+                TotalCost = orderAfterPayment.TotalCost,
+                IsPassed = orderAfterPayment.Status == "Paid" ? true : false
+            };
+
+            await _paymentRepository.AddPayment(payment);
 
             //Call OrderService's method and pass orderId and paymentId to it
             //This method will return OrderModel instance with actual data

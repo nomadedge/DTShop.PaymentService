@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DTShop.PaymentService.Core\DTShop.PaymentService.Core.csproj" />
+    <ProjectReference Include="..\DTShop.PaymentService.Data\DTShop.PaymentService.Data.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,8 @@
+using DTShop.PaymentService.Data;
+using DTShop.PaymentService.Data.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +20,11 @@ namespace DTShop.PaymentService
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<PaymentDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddScoped<IPaymentRepository, SqlPaymentRepository>();
+
             services.AddControllers();
         }
 
