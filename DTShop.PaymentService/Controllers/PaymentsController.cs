@@ -108,6 +108,9 @@ namespace DTShop.PaymentService.Controllers
             }
             catch (Exception e)
             {
+                _logger.LogInformation("{Username} has failed to perform payment for the order with OrderId {OrderId}.",
+                    userDetails.Username, orderId);
+
                 return BadRequest(e.Message);
             }
         }
