@@ -3,6 +3,7 @@ using DTShop.PaymentService.Core.Models;
 using DTShop.PaymentService.Data.Entities;
 using DTShop.PaymentService.Data.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -14,15 +15,22 @@ namespace DTShop.PaymentService.Controllers
     public class PaymentsController : ControllerBase
     {
         private readonly IPaymentRepository _paymentRepository;
+        private readonly ILogger<PaymentsController> _logger;
 
-        public PaymentsController(IPaymentRepository paymentRepository)
+        public PaymentsController(
+            IPaymentRepository paymentRepository,
+            ILogger<PaymentsController> logger)
         {
             _paymentRepository = paymentRepository;
+            _logger = logger;
         }
 
         [HttpPut("{orderId}")]
         public async Task<ActionResult<OrderModel>> PayForOrder(int orderId, UserDetailsModel userDetails)
         {
+            _logger.LogInformation("{Username} has started payment for the order with OrderId {OrderId}.",
+                userDetails.Username, orderId);
+
             CardAuthorizationInfo cardAuthorizationInfo;
             switch (userDetails.CardAuthorizationInfo.ToLower())
             {
@@ -87,6 +95,9 @@ namespace DTShop.PaymentService.Controllers
             };
 
             await _paymentRepository.AddPayment(payment);
+
+            _logger.LogInformation("{Username} has finished payment for the order with OrderId {OrderId} with status {Status}.",
+                orderAfterPayment.Username, orderAfterPayment.OrderId, orderAfterPayment.Status);
 
             //Call OrderService's method and pass orderId and paymentId to it
             //This method will return OrderModel instance with actual data
