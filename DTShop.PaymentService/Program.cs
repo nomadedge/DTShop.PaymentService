@@ -20,7 +20,7 @@ namespace DTShop.PaymentService
         {
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(Configuration)
-                .WriteTo.File(new JsonFormatter(), @"d:\Development\DotNet\DTShopLogs\PaymentLog.json", shared: true)
+                .WriteTo.File(new JsonFormatter(), @"d:\Development\DotNet\DTShopLogs\PaymentsLog.json", shared: true)
                 .CreateLogger();
 
             try
