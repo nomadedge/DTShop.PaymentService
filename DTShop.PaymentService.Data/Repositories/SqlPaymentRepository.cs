@@ -13,9 +13,9 @@ namespace DTShop.PaymentService.Data.Repositories
             _paymentDbContext = paymentDbContext;
         }
 
-        public async Task<Payment> AddPayment(Payment payment)
+        public async Task<Payment> AddPaymentAsync(Payment payment)
         {
-            _paymentDbContext.Add(payment);
+            await _paymentDbContext.AddAsync(payment);
             if (!await SaveChangesAsync())
             {
                 throw new DbUpdateException("Database failure");

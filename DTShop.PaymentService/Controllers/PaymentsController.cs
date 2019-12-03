@@ -1,12 +1,9 @@
-﻿using DTShop.PaymentService.Core.Enums;
-using DTShop.PaymentService.Core.Models;
-using DTShop.PaymentService.Data.Entities;
-using DTShop.PaymentService.Data.Repositories;
+﻿using DTShop.PaymentService.Core.Models;
+using DTShop.PaymentService.RabbitMQ;
+using DTShop.PaymentService.RabbitMQ.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace DTShop.PaymentService.Controllers
 {
@@ -14,97 +11,41 @@ namespace DTShop.PaymentService.Controllers
     [ApiController]
     public class PaymentsController : ControllerBase
     {
-        private readonly IPaymentRepository _paymentRepository;
         private readonly ILogger<PaymentsController> _logger;
+        private readonly IRabbitManager _rabbitManager;
 
         public PaymentsController(
-            IPaymentRepository paymentRepository,
-            ILogger<PaymentsController> logger)
+            ILogger<PaymentsController> logger,
+            IRabbitManager rabbitManager)
         {
-            _paymentRepository = paymentRepository;
             _logger = logger;
+            _rabbitManager = rabbitManager;
         }
 
         [HttpPut("{orderId}")]
-        public async Task<ActionResult<OrderModel>> PayForOrder(int orderId, UserDetailsModel userDetails)
+        public ActionResult<OrderRequestDto> PayForOrder(int orderId, UserDetailsModel userDetails)
         {
             try
             {
                 _logger.LogInformation("{Username} has started payment for the order with OrderId {OrderId}.",
                     userDetails.Username, orderId);
 
-                CardAuthorizationInfo cardAuthorizationInfo;
-                switch (userDetails.CardAuthorizationInfo.ToLower())
+                if (userDetails.CardAuthorizationInfo.ToLower() != "authorized" &&
+                    userDetails.CardAuthorizationInfo.ToLower() != "unauthorized")
                 {
-                    case "authorized":
-                        cardAuthorizationInfo = CardAuthorizationInfo.Authorized;
-                        break;
-                    case "unauthorized":
-                        cardAuthorizationInfo = CardAuthorizationInfo.Unauthorized;
-                        break;
-                    default:
-                        return BadRequest("CardAuthorizationInfo is not valid.");
+                    throw new ArgumentException("CardAuthorizationInfo is not valid.");
                 }
 
-                //Should get an order from OrderService
-                var order = new OrderModel
+
+                var orderRequestDto = new OrderRequestDto
                 {
                     OrderId = orderId,
-                    Username = "Misha",
-                    Status = "Collecting",
-                    OrderItems = new List<OrderItemModel> { new OrderItemModel
-                {
-                    Item = new ItemModel
-                    {
-                        ItemId = 1,
-                        Name = "Bioshock Infinite",
-                        Price = 10m
-                    },
-                    Amount = 3
-                } }
+                    Username = userDetails.Username,
+                    CardAuthorizationInfo = userDetails.CardAuthorizationInfo
                 };
+                _rabbitManager.Publish(orderRequestDto, "OrderRequest", "direct", "GetOrderRequest");
 
-                if (order.Username != userDetails.Username)
-                {
-                    return BadRequest("Usernames in order and user details should be equal.");
-                }
-
-                if (order.Status.ToLower() != "collecting")
-                {
-                    return BadRequest("Order status should be \"Collecting\".");
-                }
-
-                var orderAfterPayment = order;
-                switch (cardAuthorizationInfo)
-                {
-                    case CardAuthorizationInfo.Authorized:
-                        orderAfterPayment.PaymentId = DateTime.Now.Ticks;
-                        orderAfterPayment.Status = "Paid";
-                        break;
-                    case CardAuthorizationInfo.Unauthorized:
-                        orderAfterPayment.PaymentId = DateTime.Now.Ticks;
-                        orderAfterPayment.Status = "Failed";
-                        break;
-                }
-
-                var payment = new Payment
-                {
-                    PaymentId = orderAfterPayment.PaymentId.Value,
-                    OrderId = orderAfterPayment.OrderId,
-                    Username = orderAfterPayment.Username,
-                    TotalCost = orderAfterPayment.TotalCost,
-                    IsPassed = orderAfterPayment.Status == "Paid" ? true : false
-                };
-
-                await _paymentRepository.AddPayment(payment);
-
-                _logger.LogInformation("{Username} has finished payment for the order with OrderId {OrderId} with status {Status}.",
-                    orderAfterPayment.Username, orderAfterPayment.OrderId, orderAfterPayment.Status);
-
-                //Call OrderService's method and pass orderId and paymentId to it
-                //This method will return OrderModel instance with actual data
-
-                return orderAfterPayment;
+                return orderRequestDto;
             }
             catch (Exception e)
             {

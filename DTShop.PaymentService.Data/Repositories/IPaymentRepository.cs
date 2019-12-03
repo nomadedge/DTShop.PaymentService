@@ -5,7 +5,7 @@ namespace DTShop.PaymentService.Data.Repositories
 {
     public interface IPaymentRepository
     {
-        Task<Payment> AddPayment(Payment payment);
+        Task<Payment> AddPaymentAsync(Payment payment);
         Task<bool> SaveChangesAsync();
     }
 }

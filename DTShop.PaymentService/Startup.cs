@@ -1,5 +1,7 @@
 using DTShop.PaymentService.Data;
 using DTShop.PaymentService.Data.Repositories;
+using DTShop.PaymentService.RabbitMQ;
+using DTShop.PaymentService.RabbitMQ.Consumers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +26,10 @@ namespace DTShop.PaymentService
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
             services.AddScoped<IPaymentRepository, SqlPaymentRepository>();
+
+            services.AddRabbit(Configuration);
+
+            services.AddHostedService<PayForOrderConsumer>();
 
             services.AddControllers();
         }
