@@ -29,8 +29,6 @@ namespace DTShop.PaymentService
 
             services.AddRabbit(Configuration);
 
-            services.AddHostedService<PayForOrderConsumer>();
-
             services.AddControllers();
         }
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using DTShop.PaymentService.RabbitMQ.Consumers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.ObjectPool;
 using RabbitMQ.Client;
@@ -16,6 +17,7 @@ namespace DTShop.PaymentService.RabbitMQ
             services.AddSingleton<IPooledObjectPolicy<IModel>, RabbitModelPooledObjectPolicy>();
 
             services.AddSingleton<IRabbitManager, RabbitManager>();
+            services.AddSingleton<IRpcClient, RpcClient>();
 
             return services;
         }

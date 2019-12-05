@@ -1,9 +1,14 @@
 ﻿using DTShop.PaymentService.Core.Models;
+using DTShop.PaymentService.Data.Entities;
+using DTShop.PaymentService.Data.Repositories;
 using DTShop.PaymentService.RabbitMQ;
+using DTShop.PaymentService.RabbitMQ.Consumers;
 using DTShop.PaymentService.RabbitMQ.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
+using System.Threading.Tasks;
 
 namespace DTShop.PaymentService.Controllers
 {
@@ -13,17 +18,23 @@ namespace DTShop.PaymentService.Controllers
     {
         private readonly ILogger<PaymentsController> _logger;
         private readonly IRabbitManager _rabbitManager;
+        private readonly IRpcClient _rpcClient;
+        private readonly IPaymentRepository _paymentRepository;
 
         public PaymentsController(
             ILogger<PaymentsController> logger,
-            IRabbitManager rabbitManager)
+            IRabbitManager rabbitManager,
+            IRpcClient rpcClient,
+            IPaymentRepository paymentRepository)
         {
             _logger = logger;
             _rabbitManager = rabbitManager;
+            _rpcClient = rpcClient;
+            _paymentRepository = paymentRepository;
         }
 
         [HttpPut("{orderId}")]
-        public ActionResult<OrderRequestDto> PayForOrder(int orderId, UserDetailsModel userDetails)
+        public async Task<ActionResult<OrderModel>> PayForOrderAsync(int orderId, UserDetailsModel userDetails)
         {
             try
             {
@@ -39,13 +50,59 @@ namespace DTShop.PaymentService.Controllers
 
                 var orderRequestDto = new OrderRequestDto
                 {
-                    OrderId = orderId,
-                    Username = userDetails.Username,
-                    CardAuthorizationInfo = userDetails.CardAuthorizationInfo
+                    OrderId = orderId
                 };
-                _rabbitManager.Publish(orderRequestDto, "OrderRequest", "direct", "GetOrderRequest");
+                
+                var response = _rpcClient.Call(orderRequestDto);
+                _rpcClient.Close();
 
-                return orderRequestDto;
+                var orderResponseDto = JsonConvert.DeserializeObject<OrderModel>(response);
+
+                if (userDetails.Username != orderResponseDto.Username)
+                {
+                    throw new ArgumentException("Usernames in order and user details should be equal.");
+                }
+
+                if (orderResponseDto.Status.ToLower() != "collecting")
+                {
+                    throw new InvalidOperationException("Order status should be \"Collecting\".");
+                }
+
+                switch (userDetails.CardAuthorizationInfo.ToLower())
+                {
+                    case "authorized":
+                        orderResponseDto.PaymentId = DateTime.Now.Ticks;
+                        orderResponseDto.Status = "Paid";
+                        break;
+                    case "unauthorized":
+                        orderResponseDto.PaymentId = DateTime.Now.Ticks;
+                        orderResponseDto.Status = "Failed";
+                        break;
+                }
+
+                var payment = new Payment
+                {
+                    PaymentId = orderResponseDto.PaymentId.Value,
+                    OrderId = orderResponseDto.OrderId,
+                    Username = orderResponseDto.Username,
+                    TotalCost = orderResponseDto.TotalCost,
+                    IsPassed = orderResponseDto.Status == "Paid" ? true : false
+                };
+
+                await _paymentRepository.AddPaymentAsync(payment);
+
+                var payForOrderDto = new PayForOrderDto
+                {
+                    OrderId = orderResponseDto.OrderId,
+                    PaymentId = orderResponseDto.PaymentId.Value,
+                    Status = orderResponseDto.Status.ToString()
+                };
+                _rabbitManager.Publish(payForOrderDto, "PaymentService_OrderExchange", "direct", "PayForOrder");
+
+                _logger.LogInformation("{Username} has finished payment for the order with OrderId {OrderId} with status {Status}.",
+                    orderResponseDto.Username, orderResponseDto.OrderId, orderResponseDto.Status);
+
+                return orderResponseDto;
             }
             catch (Exception e)
             {
