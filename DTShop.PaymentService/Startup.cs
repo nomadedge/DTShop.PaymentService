@@ -1,7 +1,6 @@
 using DTShop.PaymentService.Data;
 using DTShop.PaymentService.Data.Repositories;
 using DTShop.PaymentService.RabbitMQ;
-using DTShop.PaymentService.RabbitMQ.Consumers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
