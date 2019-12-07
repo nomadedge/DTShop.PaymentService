@@ -1,3 +1,4 @@
+using AutoMapper;
 using DTShop.PaymentService.Data;
 using DTShop.PaymentService.Data.Repositories;
 using DTShop.PaymentService.RabbitMQ;
@@ -27,6 +28,8 @@ namespace DTShop.PaymentService
             services.AddScoped<IPaymentRepository, SqlPaymentRepository>();
 
             services.AddRabbit(Configuration);
+
+            services.AddAutoMapper(typeof(Startup));
 
             services.AddControllers();
         }

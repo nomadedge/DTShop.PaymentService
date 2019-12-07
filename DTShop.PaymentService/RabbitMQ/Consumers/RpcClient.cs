@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.ObjectPool;
+﻿using DTShop.PaymentService.Core.Models;
+using Microsoft.Extensions.ObjectPool;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -11,15 +12,19 @@ namespace DTShop.PaymentService.RabbitMQ.Consumers
     public class RpcClient : IRpcClient
     {
         private readonly DefaultObjectPool<IModel> _objectPool;
-        private readonly IModel _channel;
-        private readonly string _replyQueueName;
-        private readonly EventingBasicConsumer _consumer;
         private readonly BlockingCollection<string> _respQueue = new BlockingCollection<string>();
-        private readonly IBasicProperties _props;
+        private IModel _channel;
+        private string _replyQueueName;
+        private EventingBasicConsumer _consumer;
+        private IBasicProperties _props;
 
         public RpcClient(IPooledObjectPolicy<IModel> objectPolicy)
         {
             _objectPool = new DefaultObjectPool<IModel>(objectPolicy, Environment.ProcessorCount * 2);
+        }
+
+        public void Open()
+        {
             _channel = _objectPool.Get();
             _replyQueueName = _channel.QueueDeclare().QueueName;
             _consumer = new EventingBasicConsumer(_channel);
@@ -40,7 +45,7 @@ namespace DTShop.PaymentService.RabbitMQ.Consumers
             };
         }
 
-        public string Call<T>(T message) where T : class
+        public OrderModel Call<T>(T message) where T : class
         {
             var content = JsonConvert.SerializeObject(message);
             var messageBytes = Encoding.UTF8.GetBytes(content);
@@ -55,7 +60,7 @@ namespace DTShop.PaymentService.RabbitMQ.Consumers
                 queue: _replyQueueName,
                 autoAck: true);
 
-            return _respQueue.Take();
+            return JsonConvert.DeserializeObject<OrderModel>(_respQueue.Take());
         }
 
         public void Close()
