@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Steeltoe.Discovery.Client;
 
 namespace DTShop.PaymentService
 {
@@ -22,6 +23,8 @@ namespace DTShop.PaymentService
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDiscoveryClient(Configuration);
+
             services.AddDbContext<PaymentDbContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -49,6 +52,8 @@ namespace DTShop.PaymentService
             {
                 endpoints.MapControllers();
             });
+
+            app.UseDiscoveryClient();
         }
     }
 }

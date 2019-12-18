@@ -7,6 +7,7 @@ using DTShop.PaymentService.RabbitMQ.Consumers;
 using DTShop.PaymentService.RabbitMQ.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
 using System;
 using System.Threading.Tasks;
 
@@ -97,7 +98,7 @@ namespace DTShop.PaymentService.Controllers
 
                 var payForOrderDto = _mapper.Map<PayForOrderDto>(order);
 
-                _rabbitManager.Publish(payForOrderDto, "PaymentService_OrderExchange", "direct", "PayForOrder");
+                _rabbitManager.Publish(payForOrderDto, "PaymentService_OrderExchange", ExchangeType.Direct, "PayForOrder");
 
                 _logger.LogInformation("{Username} has finished payment for the order with OrderId {OrderId} with status {Status}.",
                     order.Username, order.OrderId, order.Status);
