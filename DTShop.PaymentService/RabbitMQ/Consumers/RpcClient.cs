@@ -6,6 +6,7 @@ using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Text;
+using System.Threading;
 
 namespace DTShop.PaymentService.RabbitMQ.Consumers
 {
@@ -17,6 +18,7 @@ namespace DTShop.PaymentService.RabbitMQ.Consumers
         private string _replyQueueName;
         private EventingBasicConsumer _consumer;
         private IBasicProperties _props;
+        private ManualResetEvent _signal;
 
         public RpcClient(IPooledObjectPolicy<IModel> objectPolicy)
         {
@@ -34,12 +36,15 @@ namespace DTShop.PaymentService.RabbitMQ.Consumers
             _props.CorrelationId = correlationId;
             _props.ReplyTo = _replyQueueName;
 
+            _signal = new ManualResetEvent(false);
+
             _consumer.Received += (model, ea) =>
             {
                 var body = ea.Body;
                 var response = Encoding.UTF8.GetString(body);
                 if (ea.BasicProperties.CorrelationId == correlationId)
                 {
+                    _signal.Set();
                     _respQueue.Add(response);
                 }
             };
@@ -59,6 +64,13 @@ namespace DTShop.PaymentService.RabbitMQ.Consumers
                 consumer: _consumer,
                 queue: _replyQueueName,
                 autoAck: true);
+
+            bool timeout = !_signal.WaitOne(TimeSpan.FromSeconds(5));
+
+            if (timeout)
+            {
+                throw new TimeoutException("Order Service is now unreachable. Try again later.");
+            }
 
             return JsonConvert.DeserializeObject<OrderModel>(_respQueue.Take());
         }

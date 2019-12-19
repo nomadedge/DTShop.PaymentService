@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DTShop.PaymentService.Controllers
@@ -35,6 +37,27 @@ namespace DTShop.PaymentService.Controllers
             _rpcClient = rpcClient;
             _paymentRepository = paymentRepository;
             _mapper = mapper;
+        }
+
+        [HttpGet("filter/{username}")]
+        public ActionResult<List<Payment>> GetPaymentsByUsername(string username)
+        {
+            try
+            {
+                _logger.LogInformation("Getting orders by username");
+
+                var payments = _paymentRepository.GetPaymentsByUsername(username).ToList();
+
+                if (payments.Any())
+                {
+                    return payments;
+                }
+                return NoContent();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [HttpPut("{orderId}")]
@@ -104,6 +127,13 @@ namespace DTShop.PaymentService.Controllers
                     order.Username, order.OrderId, order.Status);
 
                 return order;
+            }
+            catch (TimeoutException e)
+            {
+                _logger.LogInformation("{Username} has failed to perform payment for the order with OrderId {OrderId}.",
+                    userDetails.Username, orderId);
+
+                return StatusCode(408, e.Message);
             }
             catch (Exception e)
             {

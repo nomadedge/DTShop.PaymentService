@@ -11,17 +11,5 @@ namespace DTShop.PaymentService.Controllers
         {
             return Ok("Payment Service for DTShop application.");
         }
-
-        [HttpGet("Status")]
-        public ActionResult GetStatus()
-        {
-            return Ok(1);
-        }
-
-        [HttpGet("healthcheck")]
-        public ActionResult CheckHealth()
-        {
-            return Ok("Payment Service is running normally.");
-        }
     }
 }

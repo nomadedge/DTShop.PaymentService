@@ -8,6 +8,6 @@ namespace DTShop.PaymentService.Data
         public PaymentDbContext(DbContextOptions<PaymentDbContext> options)
             : base(options) { }
 
-        DbSet<Payment> Payments { get; set; }
+        public DbSet<Payment> Payments { get; set; }
     }
 }
