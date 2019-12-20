@@ -48,11 +48,7 @@ namespace DTShop.PaymentService.Controllers
 
                 var payments = _paymentRepository.GetPaymentsByUsername(username).ToList();
 
-                if (payments.Any())
-                {
-                    return payments;
-                }
-                return NoContent();
+                return payments;
             }
             catch (Exception e)
             {
